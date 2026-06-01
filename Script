@@ -1,95 +1,556 @@
--- SAMANTHA CORE V10 - FIXED DRAGGING + WORKING UI
-local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local Camera = workspace.CurrentCamera
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
 
--- ==================== CONFIG ====================
+-- // Configuration Structure //
 local Config = {
-    AimbotEnabled = false,
-    SilentAimEnabled = false,
+    AimbotMaster = false,    
+    AimbotActive = false,    
+    AimbotFov = 120,
+    Smoothness = 0.12, 
+    
+    SilentAimEnabled = false, 
+    SilentFov = 150,
+    
     TriggerbotEnabled = false,
-    ESPEnabled = true,
-    ChamsEnabled = true,
-    TeamCheck = true,
-    WallCheck = true,
-    AimPart = "Head",
-    FOV = 120,
-    SilentFOV = 150,
-    Smoothness = 0.15,
+    TeamCheck = true,     
+    WallCheck = false,
+    
+    EspEnabled = true,   
+    EspChams = true,
+    EspBoxes = true,
+    TeamColorEsp = false
 }
 
--- ==================== GUI ====================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 9999
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- // UI Framework Assembly //
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Samantha_Core_V10"
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 9999
+screenGui.Parent = game:GetService("CoreGui") or player:WaitForChild("PlayerGui")
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 680, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -340, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(9, 11, 22)
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
-Instance.new("UIStroke", MainFrame).Thickness = 2.5
+-- // CUSTOM IMAGE TOGGLE BUTTON //
+local floatBtn = Instance.new("ImageButton", screenGui)
+floatBtn.Size = UDim2.new(0, 60, 0, 60) 
+floatBtn.Position = UDim2.new(0.85, 0, 0.15, 0)
+floatBtn.BackgroundColor3 = Color3.fromRGB(15, 18, 26)
+floatBtn.Image = "rbxassetid://135431872346513"
+floatBtn.ScaleType = Enum.ScaleType.Crop
+Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) 
 
--- Title Bar (Draggable)
-local TitleBar = Instance.new("Frame", MainFrame)
-TitleBar.Size = UDim2.new(1, 0, 0, 55)
-TitleBar.BackgroundColor3 = Color3.fromRGB(6, 8, 20)
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 16)
+local floatGlow = Instance.new("UIStroke", floatBtn)
+floatGlow.Color = Color3.fromRGB(0, 215, 255)
+floatGlow.Thickness = 2
 
-local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "AIMLOCK"
-Title.TextColor3 = Color3.fromRGB(0, 255, 240)
-Title.Font = Enum.Font.GothamBlack
-Title.TextScaled = true
-
--- Dragging (FIXED)
-local dragging = false
-local dragStart = nil
-local startPos = nil
-
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
+task.spawn(function()
+    while task.wait() do
+        local t = os.clock()
+        local l = math.sin(t * 3) * 0.4 + 0.6
+        if floatGlow then floatGlow.Color = Color3.fromRGB(0, 100 + (l * 155), 255) end
     end
 end)
 
-TitleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+-- // MAIN DASHBOARD PANEL //
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 520, 0, 310)
+mainFrame.Position = UDim2.new(0.5, -260, 0.5, -155)
+mainFrame.BackgroundColor3 = Color3.fromRGB(8, 10, 15)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 16)
+
+local mainGlow = Instance.new("UIStroke", mainFrame)
+mainGlow.Color = Color3.fromRGB(0, 150, 255)
+mainGlow.Thickness = 1.5
+
+local sidebar = Instance.new("Frame", mainFrame)
+sidebar.Size = UDim2.new(0, 160, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(12, 15, 23)
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 16)
+
+local logo = Instance.new("TextLabel", sidebar)
+logo.Size = UDim2.new(1, 0, 0, 55)
+logo.BackgroundTransparency = 1
+logo.Text = "SAMANTHA 🤤"
+logo.TextColor3 = Color3.fromRGB(0, 230, 255)
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 15
+
+local sideLayout = Instance.new("UIListLayout", sidebar)
+sideLayout.Padding = UDim.new(0, 6)
+sideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local contentCanvas = Instance.new("Frame", mainFrame)
+contentCanvas.Size = UDim2.new(1, -160, 1, 0)
+contentCanvas.Position = UDim2.new(0, 160, 0, 0)
+contentCanvas.BackgroundTransparency = 1
+
+local aimContent = Instance.new("ScrollingFrame", contentCanvas)
+aimContent.Size = UDim2.new(1, -24, 1, -24)
+aimContent.Position = UDim2.new(0, 12, 0, 12)
+aimContent.BackgroundTransparency = 1
+aimContent.ScrollBarThickness = 0
+
+local espContent = Instance.new("ScrollingFrame", contentCanvas)
+espContent.Size = UDim2.new(1, -24, 1, -24)
+espContent.Position = UDim2.new(0, 12, 0, 12)
+espContent.BackgroundTransparency = 1
+espContent.ScrollBarThickness = 0
+espContent.Visible = true 
+
+local function setContentLayout(parent)
+    local layout = Instance.new("UIListLayout", parent)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 10)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        parent.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 15)
+    end)
+end
+setContentLayout(aimContent)
+setContentLayout(espContent)
+
+local function createNavBtn(text, associatedFrame)
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.BackgroundColor3 = associatedFrame.Visible and Color3.fromRGB(20, 25, 38) or Color3.fromRGB(12, 15, 23)
+    btn.BackgroundTransparency = associatedFrame.Visible and 0 or 1
+    btn.Text = "   " .. text
+    btn.TextColor3 = associatedFrame.Visible and Color3.fromRGB(0, 215, 255) or Color3.fromRGB(140, 150, 170)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    
+    local sStroke = Instance.new("UIStroke", btn)
+    sStroke.Color = Color3.fromRGB(0, 215, 255)
+    sStroke.Thickness = 1
+    sStroke.Enabled = associatedFrame.Visible
+
+    btn.MouseButton1Click:Connect(function()
+        aimContent.Visible = false
+        espContent.Visible = false
+        associatedFrame.Visible = true
+        
+        for _, child in ipairs(sidebar:GetChildren()) do
+            if child:IsA("TextButton") then 
+                child.BackgroundColor3 = Color3.fromRGB(12, 15, 23)
+                child.BackgroundTransparency = 1
+                child.TextColor3 = Color3.fromRGB(140, 150, 170)
+                child.UIStroke.Enabled = false
+            end
+        end
+        btn.BackgroundTransparency = 0
+        btn.BackgroundColor3 = Color3.fromRGB(20, 25, 38)
+        btn.TextColor3 = Color3.fromRGB(0, 215, 255)
+        btn.UIStroke.Enabled = true
+    end)
+end
+createNavBtn("👁️ Neural ESP", espContent)
+createNavBtn("🎯 Aim Matrix", aimContent)
+
+-- // MINI HUD FOR AIMBOT //
+local miniHUD = Instance.new("Frame", screenGui)
+miniHUD.Size = UDim2.new(0, 140, 0, 65)
+miniHUD.Position = UDim2.new(0.05, 0, 0.4, 0)
+miniHUD.BackgroundColor3 = Color3.fromRGB(11, 14, 22)
+miniHUD.BackgroundTransparency = 0.1
+miniHUD.Visible = false
+Instance.new("UICorner", miniHUD).CornerRadius = UDim.new(0, 10)
+
+local hudStroke = Instance.new("UIStroke", miniHUD)
+hudStroke.Color = Color3.fromRGB(255, 65, 65)
+hudStroke.Thickness = 1.5
+
+local hudLabel = Instance.new("TextLabel", miniHUD)
+hudLabel.Size = UDim2.new(1, 0, 0, 24)
+hudLabel.BackgroundTransparency = 1
+hudLabel.Text = "AIMBOT CONTROLLER"
+hudLabel.TextColor3 = Color3.fromRGB(170, 180, 195)
+hudLabel.Font = Enum.Font.GothamBold
+hudLabel.TextSize = 9
+
+local hudToggleBtn = Instance.new("TextButton", miniHUD)
+hudToggleBtn.Size = UDim2.new(0.88, 0, 0, 28)
+hudToggleBtn.Position = UDim2.new(0.06, 0, 0.45, 0)
+hudToggleBtn.BackgroundColor3 = Color3.fromRGB(22, 26, 38)
+hudToggleBtn.Text = "STATUS: INACTIVE"
+hudToggleBtn.TextColor3 = Color3.fromRGB(255, 75, 75)
+hudToggleBtn.Font = Enum.Font.GothamBold
+hudToggleBtn.TextSize = 10
+Instance.new("UICorner", hudToggleBtn).CornerRadius = UDim.new(0, 6)
+
+local function updateHUDVisualState()
+    if Config.AimbotActive then
+        hudToggleBtn.Text = "STATUS: RUNNING"
+        TweenService:Create(hudToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 120, 215), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(hudStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(0, 230, 255)}):Play()
+    else
+        hudToggleBtn.Text = "STATUS: INACTIVE"
+        TweenService:Create(hudToggleBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(22, 26, 38), TextColor3 = Color3.fromRGB(255, 75, 75)}):Play()
+        TweenService:Create(hudStroke, TweenInfo.new(0.15), {Color = Color3.fromRGB(255, 65, 65)}):Play()
+    end
+end
+
+hudToggleBtn.MouseButton1Click:Connect(function()
+    Config.AimbotActive = not Config.AimbotActive
+    updateHUDVisualState()
+end)
+
+-- // UI GENERATORS //
+local function createToggle(name, key, parent)
+    local container = Instance.new("Frame", parent)
+    container.Size = UDim2.new(1, 0, 0, 44)
+    container.BackgroundColor3 = Color3.fromRGB(14, 18, 28)
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 8)
+    local cStroke = Instance.new("UIStroke", container)
+    cStroke.Color = Color3.fromRGB(25, 30, 45)
+
+    local label = Instance.new("TextLabel", container)
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 14, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(215, 225, 235)
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 11
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local switch = Instance.new("TextButton", container)
+    switch.Size = UDim2.new(0, 46, 0, 24)
+    switch.Position = UDim2.new(1, -60, 0.5, -12)
+    switch.BackgroundColor3 = Config[key] and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(35, 40, 55)
+    switch.Text = ""
+    Instance.new("UICorner", switch).CornerRadius = UDim.new(1, 0)
+    
+    local sGlow = Instance.new("UIStroke", switch)
+    sGlow.Color = Config[key] and Color3.fromRGB(0, 230, 255) or Color3.fromRGB(50, 60, 80)
+
+    local pill = Instance.new("Frame", switch)
+    pill.Size = UDim2.new(0, 18, 0, 18)
+    pill.Position = Config[key] and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+    pill.BackgroundColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
+
+    switch.MouseButton1Click:Connect(function()
+        Config[key] = not Config[key]
+        
+        if key == "AimbotMaster" then
+            miniHUD.Visible = Config.AimbotMaster
+            if not Config.AimbotMaster then
+                Config.AimbotActive = false
+                updateHUDVisualState()
+            end
+        end
+
+        local targetPos = Config[key] and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+        local targetColor = Config[key] and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(35, 40, 55)
+        TweenService:Create(pill, TweenInfo.new(0.2), {Position = targetPos}):Play()
+        TweenService:Create(switch, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
+    end)
+end
+
+local function createSlider(name, key, min, max, decimal, parent)
+    local container = Instance.new("Frame", parent)
+    container.Size = UDim2.new(1, 0, 0, 52)
+    container.BackgroundColor3 = Color3.fromRGB(14, 18, 28)
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 8)
+    local cStroke = Instance.new("UIStroke", container)
+    cStroke.Color = Color3.fromRGB(25, 30, 45)
+
+    local label = Instance.new("TextLabel", container)
+    label.Size = UDim2.new(0.6, 0, 0, 22)
+    label.Position = UDim2.new(0, 14, 0, 6)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(185, 195, 205)
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 11
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = name
+
+    local valLabel = Instance.new("TextLabel", container)
+    valLabel.Size = UDim2.new(0, 60, 0, 22)
+    valLabel.Position = UDim2.new(1, -74, 0, 6)
+    valLabel.BackgroundTransparency = 1
+    valLabel.TextColor3 = Color3.fromRGB(0, 230, 255)
+    valLabel.Font = Enum.Font.GothamBold
+    valLabel.TextSize = 11
+    valLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+    local track = Instance.new("Frame", container)
+    track.Size = UDim2.new(1, -28, 0, 4)
+    track.Position = UDim2.new(0, 14, 0, 36)
+    track.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
+    Instance.new("UICorner", track)
+
+    local fill = Instance.new("Frame", track)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    Instance.new("UICorner", fill)
+
+    local knob = Instance.new("TextButton", track)
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.BackgroundColor3 = Color3.new(1, 1, 1)
+    knob.Text = ""
+    Instance.new("UICorner", knob)
+
+    local function update()
+        local pct = math.clamp((Config[key] - min) / (max - min), 0, 1)
+        valLabel.Text = decimal and string.format("%.2f", Config[key]) or tostring(math.floor(Config[key]))
+        fill.Size = UDim2.new(pct, 0, 1, 0)
+        knob.Position = UDim2.new(pct, -7, 0.5, -7)
+    end
+    update()
+
+    local slideActive = false
+    knob.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slideActive = true end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if slideActive and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then
+            local pct = math.clamp((i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+            Config[key] = min + ((max - min) * pct)
+            update()
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then slideActive = false end
+    end)
+end
+
+-- Render Configuration Framework
+createToggle("Neural Overlay Engine", "EspEnabled", espContent)
+createToggle("Thermal Silicon Chams", "EspChams", espContent)
+createToggle("2D Structural Boxes", "EspBoxes", espContent)
+createToggle("Enforce Team Colors", "TeamColorEsp", espContent)
+
+createToggle("Quantum Camera Lock", "AimbotMaster", aimContent)
+createSlider("Aimbot Field of View", "AimbotFov", 30, 600, false, aimContent)
+createSlider("Tracking Interpolation", "Smoothness", 0.02, 1.0, true, aimContent)
+
+createToggle("Sub-Vector Silent Aim", "SilentAimEnabled", aimContent) 
+createSlider("Silent Aim Field of View", "SilentFov", 30, 600, false, aimContent)
+
+createToggle("Instant Triggerbot", "TriggerbotEnabled", aimContent)
+createToggle("Vector Raycast Check", "WallCheck", aimContent)
+createToggle("Team Bypass Filter", "TeamCheck", aimContent)
+
+mainFrame.Visible = true 
+
+-- // DRAGGING CONTROLLER //
+local function setupDraggableInterface(frameToDrag)
+    local dragging = false
+    local dragStart, startPos
+
+    frameToDrag.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frameToDrag.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - dragStart
+            frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+setupDraggableInterface(floatBtn)
+setupDraggableInterface(miniHUD)
+
+floatBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
+
+-- // FIXED FOV RENDERING (GUI FRAMES INSTEAD OF DRAWING API) //
+local aimFovCircle = Instance.new("Frame", screenGui)
+aimFovCircle.BackgroundTransparency = 1
+aimFovCircle.Visible = false
+local aimStroke = Instance.new("UIStroke", aimFovCircle)
+aimStroke.Color = Color3.fromRGB(0, 215, 255)
+aimStroke.Thickness = 1.2
+Instance.new("UICorner", aimFovCircle).CornerRadius = UDim.new(1, 0)
+
+local silentFovCircle = Instance.new("Frame", screenGui)
+silentFovCircle.BackgroundTransparency = 1
+silentFovCircle.Visible = false
+local silentStroke = Instance.new("UIStroke", silentFovCircle)
+silentStroke.Color = Color3.fromRGB(255, 0, 160)
+silentStroke.Thickness = 1.2
+Instance.new("UICorner", silentFovCircle).CornerRadius = UDim.new(1, 0)
+
+-- // OPTIMIZED TARGET ACQUISITION (SCANS PLAYERS, NOT WORKSPACE) //
+local function computeTargetForRadius(radius)
+    local target, minDistance = nil, math.huge
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer == player then continue end
+        if Config.TeamCheck and otherPlayer.Team == player.Team then continue end
+        
+        local char = otherPlayer.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+            local head = char:FindFirstChild("Head") or char.PrimaryPart
+            if head then
+                local screenPos, visible = camera:WorldToViewportPoint(head.Position)
+                if visible then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                    if dist <= radius and dist < minDistance then
+                        if Config.WallCheck then
+                            local params = RaycastParams.new()
+                            params.FilterDescendantsInstances = {player.Character, char}
+                            params.FilterType = Enum.RaycastFilterType.Exclude
+                            local rayResult = workspace:Raycast(camera.CFrame.Position, (head.Position - camera.CFrame.Position), params)
+                            if rayResult then continue end
+                        end
+                        minDistance = dist
+                        target = head
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- // FIXED SILENT AIM HOOK (WITH CHECKCALLER TO PREVENT DETECTION) //
+local oldIndex
+local oldNamecall
+
+oldIndex = hookmetatable(game, {
+    __index = function(self, index)
+        if not checkcaller() and self == mouse and (index == "Hit" or index == "Target") and Config.SilentAimEnabled and not mainFrame.Visible then
+            local target = computeTargetForRadius(Config.SilentFov)
+            if target then
+                if index == "Hit" then return target.CFrame end
+                if index == "Target" then return target end
+            end
+        end
+        return oldIndex(self, index)
+    end
+})
+
+oldNamecall = hookmetatable(game, {
+    __namecall = function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+        
+        if not checkcaller() and Config.SilentAimEnabled and not mainFrame.Visible then
+            local target = computeTargetForRadius(Config.SilentFov)
+            if target then
+                if method == "Raycast" and self == workspace then
+                    args[2] = (target.Position - args[1]).Unit * 1000
+                    return oldNamecall(self, unpack(args))
+                elseif (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") and self == workspace then
+                    local ray = args[1]
+                    args[1] = Ray.new(ray.Origin, (target.Position - ray.Origin).Unit * 1000)
+                    return oldNamecall(self, unpack(args))
+                end
+            end
+        end
+        return oldNamecall(self, ...)
+    end
+})
+
+-- // MAIN SCHEDULE STEP SYSTEM RENDERER //
+local espBoxes = {}
+
+RunService.RenderStepped:Connect(function()
+    local cx, cy = camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2
+
+    -- Update FOV Circles
+    if Config.AimbotMaster and Config.AimbotActive and not mainFrame.Visible then
+        aimFovCircle.Visible = true
+        aimFovCircle.Size = UDim2.new(0, Config.AimbotFov * 2, 0, Config.AimbotFov * 2)
+        aimFovCircle.Position = UDim2.new(0, cx - Config.AimbotFov, 0, cy - Config.AimbotFov)
+    else
+        aimFovCircle.Visible = false
+    end
+
+    if Config.SilentAimEnabled and not mainFrame.Visible then
+        silentFovCircle.Visible = true
+        silentFovCircle.Size = UDim2.new(0, Config.SilentFov * 2, 0, Config.SilentFov * 2)
+        silentFovCircle.Position = UDim2.new(0, cx - Config.SilentFov, 0, cy - Config.SilentFov)
+    else
+        silentFovCircle.Visible = false
+    end
+
+    -- Optimized ESP Loop (Using Players instead of Workspace)
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer == player then continue end
+        
+        local char = otherPlayer.Character
+        local isValid = char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0
+        local isEnemy = not (Config.TeamCheck and otherPlayer.Team == player.Team)
+        local head = isValid and (char:FindFirstChild("Head") or char.PrimaryPart) or nil
+
+        -- Handle Box ESP
+        if Config.EspEnabled and Config.EspBoxes and isValid and isEnemy and head then
+            local pos, onScreen = camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                if not espBoxes[otherPlayer] then
+                    local box = Instance.new("Frame", screenGui)
+                    box.BackgroundTransparency = 1
+                    local stroke = Instance.new("UIStroke", box)
+                    stroke.Thickness = 1.5
+                    espBoxes[otherPlayer] = box
+                end
+                
+                local box = espBoxes[otherPlayer]
+                box.UIStroke.Color = (Config.TeamColorEsp and otherPlayer.Team) and otherPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
+                local distFactor = math.clamp(1000 / pos.Z, 10, 150)
+                box.Size = UDim2.new(0, distFactor, 0, distFactor * 1.5)
+                box.Position = UDim2.new(0, pos.X - (box.Size.X.Offset / 2), 0, pos.Y - (box.Size.Y.Offset / 2))
+                box.Visible = true
+            elseif espBoxes[otherPlayer] then
+                espBoxes[otherPlayer].Visible = false
+            end
+        elseif espBoxes[otherPlayer] then
+            espBoxes[otherPlayer].Visible = false
+        end
+
+        -- Handle Chams (Highlights)
+        if isValid and isEnemy then
+            local hl = char:FindFirstChild("EspChams")
+            if Config.EspEnabled and Config.EspChams then
+                if not hl then
+                    hl = Instance.new("Highlight")
+                    hl.Name = "EspChams"
+                    hl.FillTransparency = 0.5
+                    hl.OutlineColor = Color3.new(1, 1, 1)
+                    hl.Parent = char
+                end
+                hl.FillColor = (Config.TeamColorEsp and otherPlayer.Team) and otherPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
+                hl.Enabled = true
+            elseif hl then
+                hl.Enabled = false
+            end
+        end
+    end
+
+    -- Camera Lock Update
+    if Config.AimbotMaster and Config.AimbotActive and not mainFrame.Visible then
+        local optimalTarget = computeTargetForRadius(Config.AimbotFov)
+        if optimalTarget then
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, optimalTarget.Position), Config.Smoothness)
+        end
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
+-- Player Cleanup for ESP
+Players.PlayerRemoving:Connect(function(removedPlayer)
+    if espBoxes[removedPlayer] then
+        espBoxes[removedPlayer]:Destroy()
+        espBoxes[removedPlayer] = nil
     end
 end)
-
--- Sidebar
-local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Size = UDim2.new(0, 160, 1, -55)
-Sidebar.Position = UDim2.new(0, 0, 0, 55)
-Sidebar.BackgroundColor3 = Color3.fromRGB(13, 15, 26)
-
--- Content
-local Content = Instance.new("Frame", MainFrame)
-Content.Size = UDim2.new(1, -170, 1, -65)
-Content.Position = UDim2.new(0, 165, 0, 55)
-Content.BackgroundTransparency = 1
-
-print("✅ Samantha Core V10 Loaded - Dragging Fixed")
-
--- Add more UI elements here later...
