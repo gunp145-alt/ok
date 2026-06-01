@@ -1,4 +1,4 @@
--- SAMANTHA CORE V10 - RTX FUTURISTIC UI (Fixed + Premium)
+-- SAMANTHA CORE V10 - FIXED DRAGGING + WORKING UI
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -7,7 +7,7 @@ local Camera = workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
 
--- Config
+-- ==================== CONFIG ====================
 local Config = {
     AimbotEnabled = false,
     SilentAimEnabled = false,
@@ -22,168 +22,74 @@ local Config = {
     Smoothness = 0.15,
 }
 
--- ScreenGui
+-- ==================== GUI ====================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 9999
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Main Frame (Smaller & Futuristic)
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 680, 0, 420)
 MainFrame.Position = UDim2.new(0.5, -340, 0.5, -210)
-MainFrame.BackgroundColor3 = Color3.fromRGB(8, 10, 20)
-MainFrame.Visible = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 18)
+MainFrame.BackgroundColor3 = Color3.fromRGB(9, 11, 22)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
+Instance.new("UIStroke", MainFrame).Thickness = 2.5
 
--- Glassmorphism + RTX Glow
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Thickness = 2.5
-MainStroke.Color = Color3.fromRGB(0, 200, 255)
-MainStroke.Transparency = 0.4
-
-local Gradient = Instance.new("UIGradient", MainFrame)
-Gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 20, 40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 10, 22))
-}
-
--- Title Bar
+-- Title Bar (Draggable)
 local TitleBar = Instance.new("Frame", MainFrame)
 TitleBar.Size = UDim2.new(1, 0, 0, 55)
-TitleBar.BackgroundColor3 = Color3.fromRGB(5, 7, 18)
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 18)
+TitleBar.BackgroundColor3 = Color3.fromRGB(6, 8, 20)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 16)
+
 local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1,0,1,0)
+Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "AIMLOCK"
 Title.TextColor3 = Color3.fromRGB(0, 255, 240)
 Title.Font = Enum.Font.GothamBlack
 Title.TextScaled = true
 
--- Sidebar
-local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Size = UDim2.new(0, 160, 1, -55)
-Sidebar.Position = UDim2.new(0, 0, 0, 55)
-Sidebar.BackgroundColor3 = Color3.fromRGB(12, 14, 24)
+-- Dragging (FIXED)
+local dragging = false
+local dragStart = nil
+local startPos = nil
 
-local AimbotBtn = Instance.new("TextButton", Sidebar)
-AimbotBtn.Size = UDim2.new(0.9,0,0,55)
-AimbotBtn.Position = UDim2.new(0.05,0,0,20)
-AimbotBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-AimbotBtn.Text = "AIMBOT"
-AimbotBtn.TextColor3 = Color3.new(1,1,1)
-AimbotBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", AimbotBtn).CornerRadius = UDim.new(0,10)
-
-local ESPBtn = Instance.new("TextButton", Sidebar)
-ESPBtn.Size = UDim2.new(0.9,0,0,55)
-ESPBtn.Position = UDim2.new(0.05,0,0,90)
-ESPBtn.BackgroundColor3 = Color3.fromRGB(25, 28, 45)
-ESPBtn.Text = "ESP"
-ESPBtn.TextColor3 = Color3.fromRGB(160, 170, 190)
-ESPBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", ESPBtn).CornerRadius = UDim.new(0,10)
-
--- Content Area
-local Content = Instance.new("Frame", MainFrame)
-Content.Size = UDim2.new(1, -170, 1, -65)
-Content.Position = UDim2.new(0, 165, 0, 55)
-Content.BackgroundTransparency = 1
-
--- Aimbot Content (Visible by default)
-local AimbotContent = Instance.new("Frame", Content)
-AimbotContent.Size = UDim2.new(1,0,1,0)
-AimbotContent.BackgroundTransparency = 1
-
--- Silent Aim & AimLock Panels
-local AimLockPanel = Instance.new("Frame", AimbotContent)
-AimLockPanel.Size = UDim2.new(0.48,0,0.9,0)
-AimLockPanel.Position = UDim2.new(0,10,0,10)
-AimLockPanel.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
-Instance.new("UICorner", AimLockPanel).CornerRadius = UDim.new(0,14)
-
-local SilentPanel = Instance.new("Frame", AimbotContent)
-SilentPanel.Size = UDim2.new(0.48,0,0.9,0)
-SilentPanel.Position = UDim2.new(0.52,0,0,10)
-SilentPanel.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
-Instance.new("UICorner", SilentPanel).CornerRadius = UDim.new(0,14)
-
--- Example Toggles (Add more as needed)
-local function CreateNeonToggle(text, key, parent)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(0.95,0,0,50)
-    frame.Position = UDim2.new(0.025,0,0,20)
-    frame.BackgroundColor3 = Color3.fromRGB(20,25,40)
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
-
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.6,0,1,0)
-    label.Position = UDim2.new(0,15,0,0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(200,220,255)
-    label.Font = Enum.Font.GothamSemibold
-
-    -- Toggle (Neon Style)
-    local toggle = Instance.new("TextButton", frame)
-    toggle.Size = UDim2.new(0,55,0,32)
-    toggle.Position = UDim2.new(1,-70,0.5,-16)
-    toggle.BackgroundColor3 = Config[key] and Color3.fromRGB(0,255,200) or Color3.fromRGB(50,55,70)
-    Instance.new("UICorner", toggle).CornerRadius = UDim.new(1,0)
-end
-
--- Populate Panels
-CreateNeonToggle("Camera Aimlock", "AimbotEnabled", AimLockPanel)
-CreateNeonToggle("Silent Aim", "SilentAimEnabled", SilentPanel)
-CreateNeonToggle("Triggerbot", "TriggerbotEnabled", SilentPanel)
-
--- Bottom Profile
-local Profile = Instance.new("Frame", MainFrame)
-Profile.Size = UDim2.new(0, 180, 0, 65)
-Profile.Position = UDim2.new(0, 15, 1, -80)
-Profile.BackgroundColor3 = Color3.fromRGB(12, 15, 25)
-Instance.new("UICorner", Profile).CornerRadius = UDim.new(0,12)
-
-local PFP = Instance.new("ImageLabel", Profile)
-PFP.Size = UDim2.new(0,50,0,50)
-PFP.Position = UDim2.new(0,10,0.5,-25)
-PFP.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-Instance.new("UICorner", PFP).CornerRadius = UDim.new(1,0)
-
-local Name = Instance.new("TextLabel", Profile)
-Name.Size = UDim2.new(0.6,0,0.5,0)
-Name.Position = UDim2.new(0.38,0,0.1,0)
-Name.Text = LocalPlayer.Name
-Name.TextColor3 = Color3.new(1,1,1)
-Name.BackgroundTransparency = 1
-Name.Font = Enum.Font.GothamBold
-
--- Dragging
-local dragging, dragInput, dragStart, startPos
 TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = MainFrame.Position
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
     end
 end)
 
--- Tab Switching
-AimbotBtn.MouseButton1Click:Connect(function()
-    AimbotBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
-    ESPBtn.BackgroundColor3 = Color3.fromRGB(25,28,45)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
 end)
 
-ESPBtn.MouseButton1Click:Connect(function()
-    AimbotBtn.BackgroundColor3 = Color3.fromRGB(25,28,45)
-    ESPBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
-end)
+-- Sidebar
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 160, 1, -55)
+Sidebar.Position = UDim2.new(0, 0, 0, 55)
+Sidebar.BackgroundColor3 = Color3.fromRGB(13, 15, 26)
 
-print("✅ Futuristic RTX UI Loaded - Smaller & Premium")
+-- Content
+local Content = Instance.new("Frame", MainFrame)
+Content.Size = UDim2.new(1, -170, 1, -65)
+Content.Position = UDim2.new(0, 165, 0, 55)
+Content.BackgroundTransparency = 1
+
+print("✅ Samantha Core V10 Loaded - Dragging Fixed")
+
+-- Add more UI elements here later...
