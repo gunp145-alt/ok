@@ -2,17 +2,13 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-local mouse = player:GetMouse()
 
 -- // Configuration Structure //
 local Config = {
     AimbotEnabled = false,
-    SilentAimEnabled = false, -- NEW: Silent Aim State
-    TriggerbotEnabled = false,
     TeamCheck = true,     
     WallCheck = false,
     FovRadius = 130,   
@@ -33,13 +29,14 @@ screenGui.DisplayOrder = 9999
 
 -- // CUSTOM IMAGE TOGGLE BUTTON //
 local floatBtn = Instance.new("ImageButton", screenGui)
-floatBtn.Size = UDim2.new(0, 60, 0, 60) 
+floatBtn.Size = UDim2.new(0, 60, 0, 60) -- Perfect circular proportions
 floatBtn.Position = UDim2.new(0.82, 0, 0.15, 0)
 floatBtn.BackgroundColor3 = Color3.fromRGB(15, 18, 26)
-floatBtn.Image = "rbxassetid://135431872346513"
+floatBtn.Image = "rbxassetid://135431872346513" -- Custom Image Application
 floatBtn.ScaleType = Enum.ScaleType.Crop
-Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) 
+Instance.new("UICorner", floatBtn).CornerRadius = UDim.new(1, 0) -- Perfect Circle
 
+-- Premium Neon Aura Border
 local floatGlow = Instance.new("UIStroke", floatBtn)
 floatGlow.Color = Color3.fromRGB(0, 215, 255)
 floatGlow.Thickness = 2
@@ -84,7 +81,7 @@ Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 16)
 local logo = Instance.new("TextLabel", sidebar)
 logo.Size = UDim2.new(1, 0, 0, 55)
 logo.BackgroundTransparency = 1
-logo.Text = "QUANTUM V6"
+logo.Text = "QUANTUM V5"
 logo.TextColor3 = Color3.fromRGB(0, 230, 255)
 logo.Font = Enum.Font.GothamBold
 logo.TextSize = 15
@@ -162,7 +159,97 @@ end
 createNavBtn("👁️ Neural ESP", espContent)
 createNavBtn("🎯 Aim Matrix", aimContent)
 
--- // INTERACTIVE TOGGLES & SLIDERS //
+-- // HIGH-END LOGO LOAD SEQUENCE //
+local loadingFrame = Instance.new("Frame", screenGui)
+loadingFrame.Size = UDim2.new(0, 520, 0, 310)
+loadingFrame.Position = UDim2.new(0.5, -260, 0.5, -155)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(6, 8, 12)
+Instance.new("UICorner", loadingFrame).CornerRadius = UDim.new(0, 16)
+local loadStroke = Instance.new("UIStroke", loadingFrame)
+loadStroke.Color = Color3.fromRGB(30, 35, 50)
+loadStroke.Thickness = 1
+
+local loadSpinner = Instance.new("Frame", loadingFrame)
+loadSpinner.Size = UDim2.new(0, 60, 0, 60)
+loadSpinner.Position = UDim2.new(0.5, -30, 0.4, -30)
+loadSpinner.BackgroundTransparency = 1
+
+local spinnerStroke = Instance.new("UIStroke", loadSpinner)
+spinnerStroke.Color = Color3.fromRGB(0, 215, 255)
+spinnerStroke.Thickness = 3
+Instance.new("UICorner", loadSpinner).CornerRadius = UDim.new(1, 0)
+
+local loadMask = Instance.new("Frame", loadSpinner)
+loadMask.Size = UDim2.new(0.6, 0, 0.6, 0)
+loadMask.Position = UDim2.new(0.2, 0, 0.7, 0)
+loadMask.BackgroundColor3 = Color3.fromRGB(6, 8, 12)
+loadMask.BorderSizePixel = 0
+
+local loadStatus = Instance.new("TextLabel", loadingFrame)
+loadStatus.Size = UDim2.new(1, 0, 0, 30)
+loadStatus.Position = UDim2.new(0, 0, 0.7, 0)
+loadStatus.BackgroundTransparency = 1
+loadStatus.Text = "READYING SYSTEM CORES..."
+loadStatus.TextColor3 = Color3.fromRGB(140, 150, 170)
+loadStatus.Font = Enum.Font.GothamBold
+loadStatus.TextSize = 12
+
+task.spawn(function()
+    local rotTween = TweenService:Create(loadSpinner, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
+    rotTween:Play()
+    
+    task.wait(1.0)
+    loadStatus.Text = "FILTERING TEAM TARGETS..."
+    loadStatus.TextColor3 = Color3.fromRGB(0, 150, 255)
+    task.wait(1.0)
+    loadStatus.Text = "ENVIRONMENT LOADED!"
+    loadStatus.TextColor3 = Color3.fromRGB(0, 255, 150)
+    task.wait(0.5)
+    
+    rotTween:Cancel()
+    TweenService:Create(loadingFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(loadStatus, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+    TweenService:Create(spinnerStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    TweenService:Create(loadStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    loadMask:Destroy()
+    task.wait(0.4)
+    loadingFrame:Destroy()
+    mainFrame.Visible = true
+end)
+
+-- // HIGH-PRECISION SEPARATED TAP & DRAG ENGINE //
+local dragging = false
+local dragStart, startPos
+
+floatBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = floatBtn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        floatBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Clean, Independent Click Layer specifically for Toggling Frame
+floatBtn.MouseButton1Click:Connect(function()
+    if not loadingFrame or not loadingFrame.Parent then
+        mainFrame.Visible = not mainFrame.Visible
+    end
+end)
+
+-- // GLOWING SLIDERS & INTERACTIVE PILL TOGGLES //
 local function createToggle(name, key, parent)
     local container = Instance.new("Frame", parent)
     container.Size = UDim2.new(1, 0, 0, 44)
@@ -280,52 +367,19 @@ local function createSlider(name, key, min, max, decimal, parent)
     end)
 end
 
--- Render GUI Panels
+-- Draw Interactive UI Components
 createToggle("Neural Overlay Engine", "EspEnabled", espContent)
 createToggle("Thermal Silicon Chams", "EspChams", espContent)
 createToggle("2D Structural Boxes", "EspBoxes", espContent)
 createToggle("Enforce Team Colors", "TeamColorEsp", espContent)
 
 createToggle("Quantum Auto Lock", "AimbotEnabled", aimContent)
-createToggle("Sub-Vector Silent Aim", "SilentAimEnabled", aimContent) -- NEW: UI Option
-createToggle("Instant Triggerbot", "TriggerbotEnabled", aimContent)
 createToggle("Vector Raycast Check", "WallCheck", aimContent)
 createToggle("Team Bypass Filter", "TeamCheck", aimContent)
 createSlider("Target Search Radius", "FovRadius", 30, 250, false, aimContent)
 createSlider("Tracking Interpolation", "Smoothness", 0.02, 1.0, true, aimContent)
 
-mainFrame.Visible = true -- Skips loading screens directly for execution speed
-
--- // HIGH-PRECISION SEPARATED TAP & DRAG ENGINE //
-local dragging = false
-local dragStart, startPos
-
-floatBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = floatBtn.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
-        floatBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-floatBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
--- // GLOBAL ACQUISITION MATRIX ENGINE //
+-- // ACQUISITION RAYCAST MATRIX ENGINE //
 local fovVisualizer = Instance.new("Frame", screenGui)
 fovVisualizer.BackgroundTransparency = 1
 local stroke = Instance.new("UIStroke", fovVisualizer)
@@ -336,23 +390,22 @@ local function computeBestTarget()
     local target, minDistance = nil, math.huge
     local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
     
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Humanoid") and obj.Parent and obj.Health > 0 then
-            local char = obj.Parent
-            if char == player.Character or char:IsDescendantOf(screenGui) then continue end
+    for _, item in ipairs(workspace:GetDescendants()) do
+        if item:IsA("Humanoid") and item.Parent and item.Parent ~= player.Character and item.Health > 0 then
+            local model = item.Parent
+            local head = model:FindFirstChild("Head") or model:FindFirstChildWhichIsA("BasePart")
             
-            local associatedPlayer = Players:GetPlayerFromCharacter(char)
-            if Config.TeamCheck and associatedPlayer and associatedPlayer.Team == player.Team then continue end
-            
-            local head = char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
             if head then
+                local associatedPlayer = Players:GetPlayerFromCharacter(model)
+                if Config.TeamCheck and associatedPlayer and associatedPlayer.Team == player.Team then continue end
+                
                 local screenPos, visibleOnScreen = camera:WorldToViewportPoint(head.Position)
                 if visibleOnScreen then
                     local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
                     if screenDist <= Config.FovRadius and screenDist < minDistance then
                         if Config.WallCheck then
                             local params = RaycastParams.new()
-                            params.FilterDescendantsInstances = {player.Character, char}
+                            params.FilterDescendantsInstances = {player.Character, model}
                             params.FilterType = Enum.RaycastFilterType.Exclude
                             
                             local rayResult = workspace:Raycast(camera.CFrame.Position, (head.Position - camera.CFrame.Position), params)
@@ -368,128 +421,72 @@ local function computeBestTarget()
     return target
 end
 
--- // SILENT AIM METATABLE INTERCEPTION MODULE //
--- Hooks into the mouse position matrix to spoof calculations silently
-local oldIndex
-oldIndex = hookmetatable(game, {
-    __index = function(self, index)
-        if self == mouse and (index == "Hit" or index == "Target") and Config.SilentAimEnabled and not mainFrame.Visible then
-            local silentTarget = computeBestTarget()
-            if silentTarget then
-                if index == "Hit" then
-                    return silentTarget.CFrame
-                elseif index == "Target" then
-                    return silentTarget
-                end
-            end
-        end
-        return oldIndex(self, index)
-    end
-})
-
--- // SEPARATE ASYNCHRONOUS TRIGGERBOT LOOP //
-task.spawn(function()
-    while true do
-        task.wait(0.01)
-        if Config.TriggerbotEnabled and not mainFrame.Visible then
-            local mouseTarget = mouse.Target
-            if mouseTarget and mouseTarget.Parent then
-                local character = mouseTarget.Parent
-                local humanoid = character:FindFirstChildWhichIsA("Humanoid") or (character.Parent and character.Parent:FindFirstChildWhichIsA("Humanoid"))
-                
-                if humanoid and humanoid.Health > 0 and humanoid.Parent ~= player.Character then
-                    local targetChar = humanoid.Parent
-                    if not targetChar:IsDescendantOf(screenGui) then
-                        local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
-                        if not targetPlayer or not (Config.TeamCheck and targetPlayer.Team == player.Team) then
-                            VirtualInputManager:SendMouseButtonEvent(camera.ViewportSize.X/2, camera.ViewportSize.Y/2, 0, true, game, 1)
-                            task.wait(0.02)
-                            VirtualInputManager:SendMouseButtonEvent(camera.ViewportSize.X/2, camera.ViewportSize.Y/2, 0, false, game, 1)
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
 -- // REAL-TIME SCHEDULER & PIPELINE RENDERER //
 RunService.RenderStepped:Connect(function()
-    -- Show FOV circle if either Aimbot or Silent Aim is active
-    fovVisualizer.Visible = (Config.AimbotEnabled or Config.SilentAimEnabled)
+    fovVisualizer.Visible = Config.AimbotEnabled
     fovVisualizer.Size = UDim2.new(0, Config.FovRadius * 2, 0, Config.FovRadius * 2)
     fovVisualizer.Position = UDim2.new(0, (camera.ViewportSize.X / 2) - Config.FovRadius, 0, (camera.ViewportSize.Y / 2) - Config.FovRadius)
     Instance.new("UICorner", fovVisualizer).CornerRadius = UDim.new(1, 0)
 
-    local currentTargets = {}
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Humanoid") and obj.Parent and obj.Health > 0 then
-            local char = obj.Parent
-            if char == player.Character or char:IsDescendantOf(screenGui) then continue end
-            
-            local assocPlayer = Players:GetPlayerFromCharacter(char)
-            if Config.TeamCheck and assocPlayer and assocPlayer.Team == player.Team then continue end
-            
+    for _, item in ipairs(workspace:GetDescendants()) do
+        if item:IsA("Humanoid") and item.Parent and item.Parent ~= player.Character then
+            local char = item.Parent
             local primary = char:FindFirstChild("Head") or char:FindFirstChildWhichIsA("BasePart")
-            if primary then
-                local cacheId = "Box_" .. char.Name .. "_" .. char:GetDebugId()
-                currentTargets[cacheId] = true
-                
-                -- Render Highlights (Chams)
-                local highlight = char:FindFirstChild("EspHighlight")
-                if Config.EspEnabled and Config.EspChams then
-                    if not highlight then
-                        highlight = Instance.new("Highlight")
-                        highlight.Name = "EspHighlight"
-                        highlight.Parent = char
-                    end
-                    highlight.FillColor = (Config.TeamColorEsp and assocPlayer) and assocPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
-                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    highlight.FillTransparency = 0.55
-                    highlight.Enabled = true
-                elseif highlight then
-                    highlight.Enabled = false
-                end
+            local assocPlayer = Players:GetPlayerFromCharacter(char)
+            
+            if Config.TeamCheck and assocPlayer and assocPlayer.Team == player.Team then 
+                local oldHl = char:FindFirstChild("EspHighlight")
+                if oldHl then oldHl.Enabled = false end
+                local oldBox = screenGui:FindFirstChild("Box_" .. char.Name)
+                if oldBox then oldBox.Visible = false end
+                continue 
+            end
 
-                -- Render Box Overlays
-                local box = screenGui:FindFirstChild(cacheId)
-                if Config.EspEnabled and Config.EspBoxes then
-                    local pos, visible = camera:WorldToViewportPoint(primary.Position)
-                    if visible then
-                        if not box then
-                            box = Instance.new("Frame")
-                            box.Name = cacheId
-                            box.BackgroundTransparency = 1
-                            box.BorderSizePixel = 0
-                            local bs = Instance.new("UIStroke", box)
-                            bs.Thickness = 1.5
-                            box.Parent = screenGui
-                        end
-                        box.UIStroke.Color = (Config.TeamColorEsp and assocPlayer) and assocPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
-                        local distFactor = math.clamp(1000 / (camera.CFrame.Position - primary.Position).Magnitude, 8, 120)
-                        box.Size = UDim2.new(0, distFactor, 0, distFactor * 1.3)
-                        box.Position = UDim2.new(0, pos.X - (box.Size.X.Offset / 2), 0, pos.Y - (box.Size.Y.Offset / 2))
-                        box.Visible = true
-                    elseif box then
-                        box.Visible = false
+            -- Render Highlights (Chams)
+            local highlight = char:FindFirstChild("EspHighlight")
+            if Config.EspEnabled and Config.EspChams and item.Health > 0 then
+                if not highlight then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "EspHighlight"
+                    highlight.Parent = char
+                end
+                highlight.FillColor = (Config.TeamColorEsp and assocPlayer) and assocPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.FillTransparency = 0.55
+                highlight.Enabled = true
+            elseif highlight then
+                highlight.Enabled = false
+            end
+
+            -- Render Box Overlays
+            local box = screenGui:FindFirstChild("Box_" .. char.Name)
+            if Config.EspEnabled and Config.EspBoxes and primary and item.Health > 0 then
+                local pos, visible = camera:WorldToViewportPoint(primary.Position)
+                if visible then
+                    if not box then
+                        box = Instance.new("Frame")
+                        box.Name = "Box_" .. char.Name
+                        box.BackgroundTransparency = 1
+                        box.BorderSizePixel = 0
+                        local bs = Instance.new("UIStroke", box)
+                        bs.Thickness = 1.5
+                        box.Parent = screenGui
                     end
+                    box.UIStroke.Color = (Config.TeamColorEsp and assocPlayer) and assocPlayer.TeamColor.Color or Color3.fromRGB(0, 215, 255)
+                    local distFactor = math.clamp(1000 / (camera.CFrame.Position - primary.Position).Magnitude, 8, 120)
+                    box.Size = UDim2.new(0, distFactor, 0, distFactor * 1.3)
+                    box.Position = UDim2.new(0, pos.X - (box.Size.X.Offset / 2), 0, pos.Y - (box.Size.Y.Offset / 2))
+                    box.Visible = true
                 elseif box then
                     box.Visible = false
                 end
+            elseif box then
+                box.Visible = false
             end
         end
     end
 
-    -- Cleanup dead frames
-    for _, element in ipairs(screenGui:GetChildren()) do
-        if element:IsA("Frame") and string.match(element.Name, "^Box_") and not currentTargets[element.Name] then
-            element:Destroy()
-        end
-    end
-
-    -- Standard Camera Lock (Only runs if Silent Aim is turned off)
-    if Config.AimbotEnabled and not Config.SilentAimEnabled and not mainFrame.Visible then
+    if Config.AimbotEnabled and not mainFrame.Visible then
         local optimalTarget = computeBestTarget()
         if optimalTarget then
             camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, optimalTarget.Position), Config.Smoothness)
